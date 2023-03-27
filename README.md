@@ -1,3 +1,3 @@
-# blog
+# 日常Blog
 
-日常blog
+持续同步
