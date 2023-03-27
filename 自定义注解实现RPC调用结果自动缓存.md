@@ -6,7 +6,7 @@
 
 ### 前言
 
-    在高并发请求的场景下，一些远程调用经常会有一些数据是不怎么变化的，如果反复请求则会增加系统开销，同时万一出现服务异常也会引起后续问题，例如用户Seller的信息，基本不怎么变化，但在很多业务服务中却需要频繁使用。因此我们经常采用将不变化，同时又需要反复使用的数据缓存起来。
+    在高并发请求的场景下，一些远程调用经常会有一些数据是不怎么变化的，如果反复请求则会增加系统开销，同时万一出现服务异常也会引起后续问题，例如用户User的信息，基本不怎么变化，但在很多业务服务中却需要频繁使用。因此我们经常采用将不变化，同时又需要反复使用的数据缓存起来。
     
 
     直接在业务代码中进行缓存当然是最简单、直接的方式，然而这样会使得工具型的缓存代码和业务逻辑耦合在一起，不易维护。所以，最好的办法当然是使用切面进行处理。将缓存相关处理与业务代码解耦。
@@ -28,9 +28,6 @@ public @interface RpcThreadCache {
 #### 2. 定义缓存结构
 
 ```java
-package com.taobao.sellglobal.client.util.sysutil;
-
-import com.taobao.sellglobal.client.dataobject.LocalCache;
 
 public final class ThreadLocalCache {
 
@@ -56,7 +53,7 @@ public final class ThreadLocalCache {
 #### 3. 本地缓存结构LocalCache的定义
 
  - 其实就是一个map，map的key为接口返回数据的类型Class，value为需要存储的数据的k对。
- - 这里还使用了一个技巧，就是将调用的参数用逗号分隔，拼接起来作为这个调用的key，例如sellerId=111, venture = SG，拼接起来为"111,SG",value为调用查seller的结果，这样当请求同样的seller信息时，就可以直接从缓存中获取，而无需额外的调用请求了。
+ - 这里还使用了一个技巧，就是将调用的参数用逗号分隔，拼接起来作为这个调用的key，例如sellerId=111, venture = SG，拼接起来为"111,SG",value为调用查user的结果，这样当请求同样的user信息时，就可以直接从缓存中获取，而无需额外的调用请求了。
 
 
 ```java
@@ -157,16 +154,6 @@ public class ThreadLocalCacheInterceptor implements MethodInterceptor {
 
 ```java
 
-package com.taobao.sellglobal.interceptor;
-
-import com.alibaba.security.util.StringUtils;
-import com.taobao.sellglobal.client.annotation.RpcThreadCache;
-import com.taobao.sellglobal.client.dataobject.LocalCache;
-import com.taobao.sellglobal.client.util.sysutil.ThreadLocalCache;
-import org.aopalliance.intercept.MethodInterceptor;
-import org.aopalliance.intercept.MethodInvocation;
-
-
 
 public class RpcRepoInterceptor implements MethodInterceptor {
 
@@ -226,15 +213,12 @@ public class RpcRepoInterceptor implements MethodInterceptor {
     
 
 ```java
-    <bean id="rpcRepoInterceptor" class="com.taobao.sellglobal.interceptor.RpcRepoInterceptor"/>
+    <bean id="rpcRepoInterceptor" class="com.xxxx.RpcRepoInterceptor"/>
     <bean class="org.springframework.aop.support.RegexpMethodPointcutAdvisor">
       <property name="patterns">
         <list>
-          <value>com.taobao.domain.globalinfo.repository.AdminServiceRepo.getSellerUserById*</value>
-          <value>com.taobao.sellglobal.client.repository.SpuServiceRepo.getSpu*</value>
-          <value>com.taobao.domain.offer.repository.SellerConfigServiceRepo.getDeliveryOptionConfig*</value>
-          <value>com.taobao.sellglobal.client.repository.UmodelServiceRepo.getCategory*</value>
-          <value>com.taobao.sellglobal.client.repository.DataConvertServiceRepo.getLscAttributeSetId*</value>
+          <value>com.xxxxx.getSellerUserById*</value>
+          <value>com.xxxx.getConfigOption*</value>
         </list>
       </property>
       <property name="advice" ref="rpcRepoInterceptor"/>
@@ -246,3 +230,15 @@ public class RpcRepoInterceptor implements MethodInterceptor {
 #### 7. 最后在需要使用的方法上加上注解即可
 
  - 在需要缓存的调用上加上注解@RpcThreadCache
+
+```java
+/**
+ * 读取用户针对Option的设置
+ *
+ * @param userId
+ * @return
+ */
+@RpcThreadCache
+public String getUserConfigOption(Long userId) {
+    return getConfig(userId, CONFIG_OPTIONS_KEY);
+}
